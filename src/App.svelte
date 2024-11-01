@@ -1,10 +1,12 @@
 <script lang="ts">
-  import svelteLogo from "./assets/svelte.svg";
-  import viteLogo from "/vite.svg";
-  import Counter from "./lib/Counter.svelte";
+  import type { Map as LeafletMap } from "leaflet";
+  import { map, tileLayer, marker } from "leaflet";
+  import "leaflet/dist/leaflet.css";
+  import { onMount } from "svelte";
 
-  let coordinates = null;
-  let error = null;
+  let coordinates: { lng: number; lat: number } | null = null;
+  let error: string | null = null;
+  let Map: LeafletMap;
 
   const options = {
     enableHighAccuracy: true,
@@ -22,6 +24,13 @@
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           coordinates = { lat, lng };
+          Map.flyTo(coordinates, 14, {
+            animate: true,
+            duration: 3,
+            noMoveStart: true,
+          });
+          marker(coordinates).addTo(Map);
+
           // Update the map with the user's new location
           console.log(`Latitude: ${lat}, longitude: ${lng}`);
         },
@@ -48,44 +57,37 @@
       error = "Geolocation is not supported by this browser.";
     }
   }
+
+  onMount(() => {
+    Map = map("map", {
+      center: [46.2276, coordinates?.lat ?? 2.2137],
+      zoom: 6.4,
+    });
+
+    tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(Map);
+  });
 </script>
 
 <main>
-  <div>
-    <a href="https://vite.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
-
   <button on:click={sharing}>Sharing</button>
-
-  {#if coordinates}
-    <p>Longitude: {coordinates.lat}, latitude: {coordinates.lng}</p>
-  {/if}
-
-  {#if error}
-    <p>Error: {error}</p>
-  {/if}
+  <div id="map"></div>
 </main>
 
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
+  button {
+    position: absolute;
+    z-index: 2;
+    text-align: center;
+    left: 100px;
+    top: 12px;
   }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
+  #map {
+    z-index: 1;
+    width: 100%;
+    height: 100vh;
   }
 </style>
